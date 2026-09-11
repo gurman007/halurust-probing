@@ -1,0 +1,170 @@
+<title>Beyond What Code LLMs Say</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F5F6F4; --ink:#1C2228; --ink-2:#4A535C; --ink-3:#7A838C;
+  --rule:#D5D9D6; --panel:#EDEFEC; --rust:#B5471A; --rust-soft:#E9CFC2;
+  --brain:#2F5D8A; --mouth:#9AA3AB; --good:#2E7D5B;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#171B1F; --ink:#E8EBEA; --ink-2:#B4BCC2; --ink-3:#7F8891;
+  --rule:#333A40; --panel:#20262B; --rust:#E07A4A; --rust-soft:#4A2E22;
+  --brain:#7FB0E0; --mouth:#6E7880; --good:#5DBE93;
+}}
+:root[data-theme="dark"]{
+  --paper:#171B1F; --ink:#E8EBEA; --ink-2:#B4BCC2; --ink-3:#7F8891;
+  --rule:#333A40; --panel:#20262B; --rust:#E07A4A; --rust-soft:#4A2E22;
+  --brain:#7FB0E0; --mouth:#6E7880; --good:#5DBE93;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.55}
+main{max-width:760px;margin:0 auto;padding:56px 24px 80px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--rust);margin:0 0 14px}
+h1{font-family:var(--serif);font-weight:600;font-size:clamp(34px,5vw,46px);line-height:1.08;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.sub{font-family:var(--serif);font-style:italic;font-size:20px;color:var(--ink-2);margin:0 0 6px;text-wrap:balance}
+.meta{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);margin:0 0 40px}
+h2{font-family:var(--serif);font-weight:600;font-size:26px;line-height:1.2;margin:48px 0 14px;text-wrap:balance}
+h3{font-family:var(--sans);font-weight:600;font-size:15px;letter-spacing:.01em;margin:26px 0 8px}
+p{margin:0 0 14px;max-width:66ch}
+p.lede{font-size:18px;line-height:1.5;color:var(--ink)}
+strong{font-weight:600}
+code,.num{font-family:var(--mono);font-size:.93em}
+.finding{border-left:3px solid var(--rust);padding:6px 0 6px 18px;margin:22px 0}
+.finding p{margin:0 0 6px}
+.finding .label{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--rust);margin-bottom:6px}
+/* timeline */
+ol.timeline{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:0}
+ol.timeline li{display:grid;grid-template-columns:118px 1fr;gap:16px;padding:14px 0;border-top:1px solid var(--rule)}
+ol.timeline li:last-child{border-bottom:1px solid var(--rule)}
+.when{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);padding-top:3px}
+.what strong{display:block;margin-bottom:2px}
+.what{color:var(--ink-2)}
+.what .res{color:var(--ink)}
+/* table */
+.tablewrap{overflow-x:auto;margin:14px 0 6px}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:500}
+td.n{font-family:var(--mono);text-align:right;white-space:nowrap}
+th.n{text-align:right}
+tr.hl td{background:var(--panel)}
+td .ci{color:var(--ink-3);font-size:12.5px}
+.foot{font-size:13px;color:var(--ink-3);margin:6px 0 0}
+/* chart */
+figure{margin:20px 0 6px;padding:18px 18px 12px;background:var(--panel);border-radius:4px}
+figcaption{font-size:13px;color:var(--ink-2);margin-top:8px}
+svg text{font-family:var(--mono);font-size:12px;fill:var(--ink-2)}
+svg .lab{fill:var(--ink);font-family:var(--sans);font-size:13px}
+svg .axis{stroke:var(--rule)}
+svg .chance{stroke:var(--ink-3);stroke-dasharray:3 3}
+svg .val{fill:var(--ink);font-weight:500}
+/* status grid */
+.status{display:grid;grid-template-columns:1fr;gap:0;margin:10px 0 0}
+.status div{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:10px 0;border-top:1px solid var(--rule);align-items:start}
+.status div:last-child{border-bottom:1px solid var(--rule)}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:6px;justify-self:center}
+.dot.done{background:var(--good)}
+.dot.open{background:transparent;border:2px solid var(--ink-3)}
+.status b{font-weight:600}
+.status span{color:var(--ink-2)}
+.small{font-size:13.5px;color:var(--ink-2)}
+@media (max-width:560px){ol.timeline li{grid-template-columns:1fr;gap:4px}}
+</style>
+
+<main>
+<p class="eyebrow">Thesis progress brief · for Prof. Yang</p>
+<h1>Beyond What Code LLMs Say</h1>
+<p class="sub">What we set out to test about Rust vulnerability detection, how we tested it, and what we found.</p>
+<p class="meta">Gurman Singh Marahar · Texas A&amp;M–San Antonio · Sep 2026</p>
+
+<h2>Background</h2>
+<p>HALURust (arXiv 2503.10793) detects Rust vulnerabilities with a two-step trick: ask an LLM to write a report about the code, then classify the report. Its own ablation shows why the trick matters — classifying the code directly with the same fine-tuned model reaches only about 50% F1, while classifying the report reaches about 75%. The paper never asks why the detour works.</p>
+<p>My project started as an extension of HALURust's dataset. When that alone was judged not novel enough, we turned the ablation into a question about mechanism. If the model can only detect vulnerabilities after it has talked about the code, either it does not know until it reasons out loud, or it already knows and simply cannot say so when asked directly. These two explanations predict different things about the model's internal state, so they can be tested.</p>
+
+<h2>The idea</h2>
+<p>Take a frozen code model and show it two versions of the same Rust function: the vulnerable one and its fix. Then measure two things on exactly the same pairs. First, the <em>mouth</em>: ask the model directly whether the code is vulnerable, and score its answer. Second, the <em>brain</em>: read the model's internal activations at one layer and train a small linear classifier (a probe) to tell the two versions apart. Both are scored the same way — how often the vulnerable twin is ranked above its fix, so a coin flip is 0.50 and perfect is 1.00. If the mouth is at chance while the brain is well above it, the model knows more than it says, and HALURust's detour is a way of recovering knowledge that is already there.</p>
+
+<h2>What we did</h2>
+<h3>1. Cleaning the ground truth</h3>
+<p>Before running anything, I audited every record of our 251-row vulnerable/fixed dataset against the RustSec advisory database and each repository's git history. Of 245 unique CVEs, 221 reference commits checked out cleanly. Eleven pointed at the wrong commit, four SHAs did not exist, two changed no Rust code, two were mislabelled, and twelve advisories were never patched upstream. Every experiment below uses only the 228 clean pairs, and each pair now carries its CWE, crate, advisory date and commit date, which is what makes the time-based test possible later.</p>
+
+<h3>2. Is there anything to read? (Phase 1, Aug 28)</h3>
+<p>I extracted the hidden states of Qwen2.5-Coder-7B for every function and trained a probe at every layer, with cross-validation folds grouped by CVE so that no twin of a test pair is ever seen in training. The best layer (24 of 28) ranked the vulnerable twin above its fix 0.82 of the time, and the same held on CVEs from 2024 onward. Along the way I found something we had to take seriously: because fixes usually add code, the trivial rule “the shorter twin is vulnerable” scores 0.81 by itself. From that point on, every probe result had to be compared against this length shortcut.</p>
+
+<h3>3. Does the mouth match the brain? (Phase 1.5, Sep 1)</h3>
+<p>I re-ran the probe with bootstrap confidence intervals and, on the same pairs, asked the Instruct version of the model directly in three ways: a plain yes/no question, a yes/no question framed as a security audit, and a forced choice where both twins are shown and the model must say which one is vulnerable. The answers were scored from the model's own answer-token probabilities, so there is no parsing ambiguity. The mouth was at chance on every prompt: 0.50, 0.54, 0.50. The brain read 0.80 with a confidence interval of 0.75 to 0.85, and 0.83 when trained only on pre-2024 CVEs and tested on 56 later ones. One thing this run could not resolve was whether the probe was doing anything beyond the length shortcut: on the CVE pairs, the probe and the length rule make nearly the same mistakes, and a McNemar test could not separate them.</p>
+
+<h3>4. Security, or just the shape of a patch? (Phase 1.5b, Sep 2)</h3>
+<p>To answer that, I built a control set. From the same repositories I mined 1,133 ordinary before/after function pairs from commits that were not security fixes — no advisory, no security vocabulary in the commit message, not adjacent to a known fix — and selected 226 whose length pattern matches the CVE pairs almost exactly (79% vs 80% “after is longer”; the length rule scores 0.80 on both sets). Then I applied the CVE-trained probe to them. If the probe had learned “shorter means vulnerable”, it would score about 0.80 here too. It scored 0.61. Two further checks agreed: mathematically removing length from the activations made the probe better, not worse (0.80 to 0.83), and padding the vulnerable twin with comments until it became the longer one did not change its choice. The control set also included 42 non-security bug-fix commits, where the probe scored 0.67.</p>
+
+<h2>The numbers</h2>
+<figure>
+<svg viewBox="0 0 700 250" width="100%" role="img" aria-label="Pairwise accuracy of each method on vulnerable versus fixed Rust twins">
+  <!-- scale: x from 0.40 to 0.90 maps to 190..660 -->
+  <line class="axis" x1="190" y1="12" x2="190" y2="212"/>
+  <line class="chance" x1="284" y1="12" x2="284" y2="212"/>
+  <text x="284" y="228" text-anchor="middle">0.50 chance</text>
+  <text x="472" y="228" text-anchor="middle">0.70</text>
+  <text x="566" y="228" text-anchor="middle">0.80</text>
+  <text x="660" y="228" text-anchor="middle">0.90</text>
+  <!-- rows -->
+  <text class="lab" x="180" y="38" text-anchor="end">Mouth: asked directly</text>
+  <rect x="190" y="26" width="94" height="16" fill="var(--mouth)"/>
+  <text class="val" x="292" y="39">0.50</text>
+
+  <text class="lab" x="180" y="78" text-anchor="end">Length rule (shorter = vulnerable)</text>
+  <rect x="190" y="66" width="381" height="16" fill="var(--ink-3)"/>
+  <text class="val" x="579" y="79">0.81</text>
+
+  <text class="lab" x="180" y="118" text-anchor="end">Brain: probe, CVE pairs</text>
+  <rect x="190" y="106" width="372" height="16" fill="var(--brain)"/>
+  <line x1="515" y1="114" x2="609" y2="114" stroke="var(--ink)" stroke-width="1.5"/>
+  <text class="val" x="616" y="119">0.80</text>
+
+  <text class="lab" x="180" y="158" text-anchor="end">Brain: probe, post-2024 CVEs</text>
+  <rect x="190" y="146" width="404" height="16" fill="var(--brain)"/>
+  <text class="val" x="602" y="159">0.83</text>
+
+  <text class="lab" x="180" y="198" text-anchor="end">Brain: probe, ordinary patches</text>
+  <rect x="190" y="186" width="194" height="16" fill="var(--rust)"/>
+  <line x1="323" y1="194" x2="442" y2="194" stroke="var(--ink)" stroke-width="1.5"/>
+  <text class="val" x="450" y="199">0.61</text>
+</svg>
+<figcaption>Pairwise accuracy (chance 0.50) on the same 228 audited CVE pairs, except the last row, which is the same probe applied to 226 length-matched non-security patches from the same repositories. Black whiskers are 95% bootstrap CIs.</figcaption>
+</figure>
+
+<div class="tablewrap">
+<table>
+<thead><tr><th>Measurement</th><th class="n">Value</th><th class="n">95% CI / n</th></tr></thead>
+<tbody>
+<tr><td>Mouth — zero-shot yes/no, expert yes/no, A/B forced choice</td><td class="n">0.50 · 0.54 · 0.50</td><td class="n"><span class="ci">n = 228</span></td></tr>
+<tr><td>Length rule — shorter twin is vulnerable</td><td class="n">0.805</td><td class="n"><span class="ci">eq-len subset 0.68</span></td></tr>
+<tr class="hl"><td><strong>Brain — linear probe, layer 24 of 28</strong></td><td class="n"><strong>0.796</strong></td><td class="n"><span class="ci">[0.746, 0.846] · 228</span></td></tr>
+<tr><td>Brain — trained on pre-2024 CVEs, tested on 2024+</td><td class="n">0.830</td><td class="n"><span class="ci">[0.723, 0.920] · 56</span></td></tr>
+<tr><td>Brain — after regressing length out of the activations</td><td class="n">0.833</td><td class="n"><span class="ci">[0.785, 0.879] · 228</span></td></tr>
+<tr class="hl"><td><strong>Control — same probe on ordinary (non-security) patches</strong></td><td class="n"><strong>0.606</strong></td><td class="n"><span class="ci">[0.542, 0.668] · 226</span></td></tr>
+<tr><td>Control — length rule on those same ordinary patches</td><td class="n">0.801</td><td class="n"><span class="ci">226</span></td></tr>
+<tr><td>Control — same probe on non-security bug-fix commits</td><td class="n">0.667</td><td class="n"><span class="ci">[0.524, 0.798] · 42</span></td></tr>
+<tr><td>Placebo — vulnerable twin padded to be the longer one</td><td class="n">0.871 → 0.906</td><td class="n"><span class="ci">159 pairs, 26 flips</span></td></tr>
+</tbody>
+</table>
+</div>
+<p class="foot">Frozen Qwen2.5-Coder-7B (base, 4-bit), mean-pooled hidden states, standardised logistic regression, CVE-grouped 5-fold CV. Mouth: Qwen2.5-Coder-7B-Instruct, first-answer-token probabilities. Same 228 audited pairs throughout.</p>
+
+<h2>What we found</h2>
+<p>The model knows more than it says. Asked in any of three ways, including being shown both twins and forced to choose, it is at a coin flip; read internally, the same code separates at 0.80. That is a direct explanation of HALURust's ablation: the knowledge is present in the activations and lost in decoding, and the report-generation step was compensating for that loss.</p>
+<p>It is not memorisation. Trained on CVEs disclosed before 2024 and tested on those disclosed later — code the model is very unlikely to have seen with its label — the probe still reads 0.83, while the mouth stays at 0.50. Whatever the probe reads is computed from the code, not recalled.</p>
+<p>And it is mostly about security, not about what a patch looks like. On ordinary patches with the identical length pattern, the length rule still scores 0.80 but the probe falls to 0.61. Removing length helps the probe, and making the vulnerable version longer does not fool it. The result is graded in a sensible way — ordinary edits 0.61, bug fixes 0.67, security fixes 0.80 — so I read the 0.19 gap between ordinary patches and security fixes as the security-specific part of the signal, and the 0.11 the probe keeps on ordinary patches as a generic “older version of the code” sense that any twin-based evaluation should subtract.</p>
+<p>There is a methodological point here as well. The pairwise twin metric used across this literature does not cancel length; it hands any method an 0.80 free ride. We propose reporting the overall pairwise score, the equal-length subset, the single-sample AUC, and a matched non-security control together, with confidence intervals. No prior work on probing code models for bugs runs a say-versus-know comparison, an audited real-CVE corpus, a time-based split, a non-security control, or Rust.</p>
+
+<h2>Where the evidence is weaker</h2>
+<p>The single-sample AUC is modest, around 0.60: the probe is much better at saying which of two versions is worse than at judging one function in isolation, so the knowledge is relational more than absolute. The equal-length subset has only 36 pairs. One of the four control tests, a cross-dataset AUC, turned out to be confounded — the CVE files and my control files are distinguishable as datasets because HALURust's extraction leaves artefacts my parser does not — so I have excluded it; the three within-pair tests above are immune to that problem. Finally, the control commits were filtered by commit-message vocabulary, so a few silent security fixes may remain among them. That would push the control score up, which works against our claim rather than for it.</p>
+
+<h2>What comes next</h2>
+<p>The controls having passed, two directions are open. The first is to ask how general the result is: rerun the same three measurements — probe, mouth, control — on other model families (Llama 3.1, CodeLlama, Gemma, DeepSeek-Coder, StarCoder2, and larger Qwen sizes), with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read. The second is training: with the GCP credit and approved GPU quota, fine-tune the model on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape. The frozen probe's 0.80 (0.83 after removing length) is our pre-registered ceiling for that comparison.</p>
+
+<p class="small">All materials are in the project workspace: the audited metadata for 245 CVEs, three self-contained Colab notebooks with saved outputs, the 268-pair control set with per-commit metadata, and the full design and results log.</p>
+</main>
