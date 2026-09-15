@@ -1,7 +1,7 @@
 # Beyond What Code LLMs Say — Probing Internal Representations for Rust Vulnerability Detection
 
 M.S. thesis project · Gurman Singh Marahar · Texas A&M University–San Antonio · advisor Prof. Yang
-Progress brief, September 2026 (updated Sep 15 with the cross-model replication). All experiments run on a free Colab T4.
+Progress brief, September 2026 (updated Sep 16 with the cross-model replication). All 7–9B experiments run on a free Colab T4; the 24B model on a GCP L4.
 
 ---
 
@@ -44,20 +44,20 @@ To answer that, we built a control set. From the same repositories we mined 1,13
 
 ### 5. Does it hold in other model families? (Phase 2, Sep 13–16)
 
-Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on three more families: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on) and **Llama-3.1-8B** (general-purpose). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
+Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on four more families: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on), **Llama-3.1-8B** (general-purpose) and **Mistral-Small-24B** (three times the size; run on a GCP L4). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
 
-| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B |
-|---|---|---|---|---|
-| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 |
-| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] |
-| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 |
-| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 |
-| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** |
-| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 |
-| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
+| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B |
+|---|---|---|---|---|---|
+| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 | 0.58 / 0.58 / 0.50 |
+| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] |
+| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 | 0.839 |
+| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 | 0.789 |
+| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** | **0.644** |
+| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 | 0.702 |
+| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
 
-Four families, one picture: the mouth is at a coin flip everywhere (CodeLlama's yes/no answers are even slightly *inverted*), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to about 0.60 on ordinary patches with the same length pattern.
-→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
+Five families, one picture: the mouth is at a coin flip everywhere (CodeLlama's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing.
+→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
 
 ## The numbers
 
@@ -77,11 +77,11 @@ Frozen Qwen2.5-Coder-7B (base, 4-bit), mean-pooled hidden states, standardised l
 
 ## What we found
 
-**The model knows more than it says.** Asked in any of three ways, including being shown both twins and forced to choose, it is at a coin flip; read internally, the same code separates at 0.80 — and the same holds in CodeLlama, Gemma-2 and Llama-3.1 (0.76–0.77). That is a direct explanation of HALURust's ablation: the knowledge is present in the activations and lost in decoding, and the report-generation step was compensating for that loss.
+**The model knows more than it says.** Asked in any of three ways, including being shown both twins and forced to choose, it is at a coin flip; read internally, the same code separates at 0.80 — and the same holds in CodeLlama, Gemma-2, Llama-3.1 and Mistral-24B (0.76–0.79). That is a direct explanation of HALURust's ablation: the knowledge is present in the activations and lost in decoding, and the report-generation step was compensating for that loss.
 
 **It is not memorisation.** Trained on CVEs disclosed before 2024 and tested on those disclosed later — code the model is very unlikely to have seen with its label — the probe still reads 0.83, while the mouth stays at 0.50. CodeLlama, whose training data ends in 2023, reads 0.80 on those same pairs.
 
-**It is mostly about security, not about what a patch looks like.** On ordinary patches with the identical length pattern, the length rule still scores 0.80 but the probe falls to 0.61. Removing length helps the probe, and making the vulnerable version longer does not fool it. The result is graded — ordinary edits 0.61, bug fixes 0.67, security fixes 0.80 — and the same ordering appears in CodeLlama, Gemma-2 and Llama-3.1, so we read the 0.19 gap between ordinary patches and security fixes as the security-specific part of the signal, and the 0.11 the probe keeps on ordinary patches as a generic "older version of the code" sense that any twin-based evaluation should subtract.
+**It is mostly about security, not about what a patch looks like.** On ordinary patches with the identical length pattern, the length rule still scores 0.80 but the probe falls to 0.61. Removing length helps the probe, and making the vulnerable version longer does not fool it. The result is graded — ordinary edits 0.61, bug fixes 0.67, security fixes 0.80 — and the same ordering appears in CodeLlama, Gemma-2, Llama-3.1 and Mistral-24B, so we read the 0.19 gap between ordinary patches and security fixes as the security-specific part of the signal, and the 0.11 the probe keeps on ordinary patches as a generic "older version of the code" sense that any twin-based evaluation should subtract.
 
 **A methodological point.** The pairwise twin metric used across this literature does not cancel length; it hands any method an 0.80 free ride. We propose reporting the overall pairwise score, the equal-length subset, single-sample AUC, and a matched non-security control together, with confidence intervals. No prior work on probing code models for bugs runs a say-versus-know comparison, an audited real-CVE corpus, a time-based split, a non-security control, or Rust (see `REFERENCES.md`).
 
@@ -91,7 +91,7 @@ The single-sample AUC is modest, around 0.60: the probe is much better at saying
 
 ## What comes next
 
-Two directions are open. **Generality:** CodeLlama, Gemma-2 and Llama 3.1 are done; next are DeepSeek-Coder, StarCoder2 and larger Qwen sizes, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
+Two directions are open. **Generality:** CodeLlama, Gemma-2, Llama 3.1 and Mistral-24B are done; next are DeepSeek-Coder, StarCoder2 and a Qwen size sweep, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
 
 ---
 
@@ -102,7 +102,7 @@ README.md                      this brief
 REFERENCES.md                  every paper, database and method cited, with links
 docs/
   progress_brief.html          the same brief as a formatted page
-  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 7)
+  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 8)
   02_reference_commit_audit.md             the 251-row commit audit (method, verdicts, wrong rows)
   03_probing_explainer.md                  plain-language explanation of every term (pre-Phase-1)
   04_extraction_methodology_and_audit.md   how pairs were extracted; leakage measurements; threats to validity
@@ -117,6 +117,7 @@ notebooks/
   xmodel_codellama7b.ipynb       Phase 2: same pipeline on CodeLlama-7B (+Instruct)
   xmodel_gemma2_9b.ipynb         Phase 2: same pipeline on Gemma-2-9B (+it)
   xmodel_llama31_8b.ipynb        Phase 2: same pipeline on Llama-3.1-8B (+Instruct)
+  xmodel_mistral24b.ipynb        Phase 2: same pipeline on Mistral-Small-24B (GCP L4)
 data/
   halurust_metadata.csv          245 CVEs: cwe, crate, repo, rustsec_id, dates, never_patched, audit verdict
   Halurust_SHA_audit.xlsx        the dataset sheet + 10 audit columns
