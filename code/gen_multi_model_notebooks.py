@@ -8,6 +8,7 @@ MODELS = {
  "codellama7b": dict(base="codellama/CodeLlama-7b-hf", instruct="codellama/CodeLlama-7b-Instruct-hf", tag="CodeLlama-7B", eager=False),
  "llama31_8b":  dict(base="meta-llama/Llama-3.1-8B", instruct="meta-llama/Llama-3.1-8B-Instruct", tag="Llama-3.1-8B", eager=False),
  "gemma2_9b":   dict(base="google/gemma-2-9b", instruct="google/gemma-2-9b-it", tag="Gemma-2-9B", eager=True),
+ "mistral24b":  dict(base="mistralai/Mistral-Small-24B-Base-2501", instruct="mistralai/Mistral-Small-24B-Instruct-2501", tag="Mistral-Small-24B", eager=False, big=True),
 }
 
 def build(key):
@@ -18,12 +19,13 @@ Same three measurements as the Qwen2.5-Coder-7B study, on a different model fami
 **brain** (linear probe on frozen base-model hidden states, CVE-grouped CV, temporal split),
 **control** (same probe transferred to 226 length-matched non-security patches; length-residualised probe),
 **mouth** (Instruct sibling asked directly: yes/no, expert yes/no, A/B forced choice; answer-token probabilities).
-Self-contained (data embedded). Runtime: Colab T4, ~60–90 min. Run cells one at a time (Colab's *Run all* has restarted the runtime after the pip step)."""
+Self-contained (data embedded). Runtime: {"an L4 (24 GB) or A100 — this model does not fit the free T4; ~2–3 h on an L4" if M.get('big') else "Colab T4, ~60–90 min"}. Run cells one at a time (Colab's *Run all* has restarted the runtime after the pip step)."""
 
     C_INSTALL = """#@title 1. Install
 !pip -q install -U transformers accelerate bitsandbytes scikit-learn scipy
 import torch, numpy as np, pandas as pd, os, re, glob, json, zipfile
-print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NONE - switch runtime to T4!")"""
+print("GPU:", torch.cuda.get_device_name(0) if torch.cuda.is_available() else "NONE - switch to a GPU runtime!")
+if torch.cuda.is_available(): print("VRAM GB:", round(torch.cuda.get_device_properties(0).total_memory/1e9,1))"""
 
     C_CONFIG = f"""#@title 2. Config + Hugging Face token (from Colab Secrets)
 MODEL_BASE     = "{M['base']}"
@@ -66,7 +68,9 @@ def extract(codes, cache):
 H_cve = extract(list(df.code), CACHE_CVE)
 H_ctl = extract(list(dfc.code), CACHE_CTL)
 N,L1,d = H_cve.shape; print("CVE",H_cve.shape,"CTL",H_ctl.shape)
-del model; torch.cuda.empty_cache()"""
+del model; torch.cuda.empty_cache()
+import shutil, glob as _g  # free the base model's disk cache before the Instruct download (two large models may not fit the disk)
+for _p in _g.glob(os.path.expanduser('~/.cache/huggingface/hub/models--'+MODEL_BASE.replace('/','--'))): shutil.rmtree(_p, ignore_errors=True)"""
 
     C_STATS = """#@title 7. Temporal split + control transfer + length-residualised probe
 from sklearn.linear_model import LinearRegression
@@ -191,8 +195,8 @@ print("===RESULTS_JSON==="); print(json.dumps(results, default=float)); print("=
         cells.append({"cell_type":"code","metadata":{},"execution_count":None,"outputs":[],"source":s})
     md(C_TITLE); code(C_INSTALL); code(C_CONFIG); code(C_DATA); code(C_DATA2); code(C_LOAD); code(C_LOADCTL); code(C_FLOORS)
     code(C_EXTRACT); code(C_PROBE); code(C_STATS); code(C_MOUTH); code(C_FINAL)
-    nb={"cells":cells,"metadata":{"colab":{"provenance":[],"gpuType":"T4"},"kernelspec":{"name":"python3","display_name":"Python 3"},"accelerator":"GPU"},"nbformat":4,"nbformat_minor":0}
+    nb={"cells":cells,"metadata":{"colab":{"provenance":[],"gpuType":("L4" if M.get("big") else "T4")},"kernelspec":{"name":"python3","display_name":"Python 3"},"accelerator":"GPU"},"nbformat":4,"nbformat_minor":0}
     out=f'/mnt/user-data/outputs/xmodel_{key}.ipynb'
     json.dump(nb, open(out,'w'), indent=1); print(key, "OK", os.path.getsize(out))
 
-for k in MODELS: build(k)
+for k in (sys.argv[1:] or MODELS): build(k)
