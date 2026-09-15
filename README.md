@@ -1,7 +1,7 @@
 # Beyond What Code LLMs Say — Probing Internal Representations for Rust Vulnerability Detection
 
 M.S. thesis project · Gurman Singh Marahar · Texas A&M University–San Antonio · advisor Prof. Yang
-Progress brief, September 2026. All experiments run on a free Colab T4 with Qwen2.5-Coder-7B.
+Progress brief, September 2026 (updated Sep 15 with the cross-model replication). All experiments run on a free Colab T4.
 
 ---
 
@@ -42,6 +42,23 @@ The probe was re-run with bootstrap confidence intervals and, on the same pairs,
 To answer that, we built a control set. From the same repositories we mined 1,133 ordinary before/after function pairs from commits that were not security fixes — no advisory, no security vocabulary in the commit message, not adjacent to a known fix — and selected 226 whose length pattern matches the CVE pairs almost exactly (79% vs 80% "after is longer"; the length rule scores 0.80 on both sets). Then we applied the CVE-trained probe to them. If the probe had learned "shorter means vulnerable", it would score about 0.80 here too. **It scored 0.61.** Two further checks agreed: removing length from the activations made the probe better, not worse (0.80 → 0.83), and padding the vulnerable twin with comments until it became the longer one did not change its choice. The control set also included 42 non-security bug-fix commits, where the probe scored 0.67.
 → `notebooks/phase15b_controls_v2.ipynb`, `data/control_pairs.zip`, `code/control_mining/`
 
+### 5. Does it hold in other model families? (Phase 2, Sep 13–15)
+
+Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on two more families: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it) and **Gemma-2-9B** (general-purpose model; the family HALURust's own classifier was built on). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
+
+| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B |
+|---|---|---|---|
+| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 |
+| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] |
+| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 |
+| Brain — length regressed out | 0.833 | 0.776 | 0.781 |
+| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** |
+| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 |
+| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
+
+Three families, one picture: the mouth is at a coin flip everywhere (CodeLlama's yes/no answers are even slightly *inverted*), the brain reads 0.77–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to about 0.60 on ordinary patches with the same length pattern. Llama-3.1-8B is queued next.
+→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
+
 ## The numbers
 
 | Measurement | Value | 95% CI / n |
@@ -60,11 +77,11 @@ Frozen Qwen2.5-Coder-7B (base, 4-bit), mean-pooled hidden states, standardised l
 
 ## What we found
 
-**The model knows more than it says.** Asked in any of three ways, including being shown both twins and forced to choose, it is at a coin flip; read internally, the same code separates at 0.80. That is a direct explanation of HALURust's ablation: the knowledge is present in the activations and lost in decoding, and the report-generation step was compensating for that loss.
+**The model knows more than it says.** Asked in any of three ways, including being shown both twins and forced to choose, it is at a coin flip; read internally, the same code separates at 0.80 — and the same holds in CodeLlama and Gemma-2 (0.77 each). That is a direct explanation of HALURust's ablation: the knowledge is present in the activations and lost in decoding, and the report-generation step was compensating for that loss.
 
-**It is not memorisation.** Trained on CVEs disclosed before 2024 and tested on those disclosed later — code the model is very unlikely to have seen with its label — the probe still reads 0.83, while the mouth stays at 0.50.
+**It is not memorisation.** Trained on CVEs disclosed before 2024 and tested on those disclosed later — code the model is very unlikely to have seen with its label — the probe still reads 0.83, while the mouth stays at 0.50. CodeLlama, whose training data ends in 2023, reads 0.80 on those same pairs.
 
-**It is mostly about security, not about what a patch looks like.** On ordinary patches with the identical length pattern, the length rule still scores 0.80 but the probe falls to 0.61. Removing length helps the probe, and making the vulnerable version longer does not fool it. The result is graded — ordinary edits 0.61, bug fixes 0.67, security fixes 0.80 — so we read the 0.19 gap between ordinary patches and security fixes as the security-specific part of the signal, and the 0.11 the probe keeps on ordinary patches as a generic "older version of the code" sense that any twin-based evaluation should subtract.
+**It is mostly about security, not about what a patch looks like.** On ordinary patches with the identical length pattern, the length rule still scores 0.80 but the probe falls to 0.61. Removing length helps the probe, and making the vulnerable version longer does not fool it. The result is graded — ordinary edits 0.61, bug fixes 0.67, security fixes 0.80 — and the same ordering appears in CodeLlama and Gemma-2, so we read the 0.19 gap between ordinary patches and security fixes as the security-specific part of the signal, and the 0.11 the probe keeps on ordinary patches as a generic "older version of the code" sense that any twin-based evaluation should subtract.
 
 **A methodological point.** The pairwise twin metric used across this literature does not cancel length; it hands any method an 0.80 free ride. We propose reporting the overall pairwise score, the equal-length subset, single-sample AUC, and a matched non-security control together, with confidence intervals. No prior work on probing code models for bugs runs a say-versus-know comparison, an audited real-CVE corpus, a time-based split, a non-security control, or Rust (see `REFERENCES.md`).
 
@@ -74,7 +91,7 @@ The single-sample AUC is modest, around 0.60: the probe is much better at saying
 
 ## What comes next
 
-Two directions are open. **Generality:** rerun the same three measurements — probe, mouth, control — on other model families (Llama 3.1, CodeLlama, Gemma, DeepSeek-Coder, StarCoder2, larger Qwen sizes), with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
+Two directions are open. **Generality:** CodeLlama and Gemma-2 are done; next are Llama 3.1, DeepSeek-Coder, StarCoder2 and larger Qwen sizes, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
 
 ---
 
@@ -85,7 +102,7 @@ README.md                      this brief
 REFERENCES.md                  every paper, database and method cited, with links
 docs/
   progress_brief.html          the same brief as a formatted page
-  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b results log (rev. 5)
+  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 6)
   02_reference_commit_audit.md             the 251-row commit audit (method, verdicts, wrong rows)
   03_probing_explainer.md                  plain-language explanation of every term (pre-Phase-1)
   04_extraction_methodology_and_audit.md   how pairs were extracted; leakage measurements; threats to validity
@@ -97,6 +114,8 @@ notebooks/
   phase1_probing_sc.ipynb        Phase 1 (self-contained; data embedded)
   phase15_ladder.ipynb           Phase 1.5 say-vs-know ladder + statistics
   phase15b_controls_v2.ipynb     Phase 1.5b controls (4 tests)
+  xmodel_codellama7b.ipynb       Phase 2: same pipeline on CodeLlama-7B (+Instruct)
+  xmodel_gemma2_9b.ipynb         Phase 2: same pipeline on Gemma-2-9B (+it)
 data/
   halurust_metadata.csv          245 CVEs: cwe, crate, repo, rustsec_id, dates, never_patched, audit verdict
   Halurust_SHA_audit.xlsx        the dataset sheet + 10 audit columns
@@ -108,8 +127,10 @@ code/
   control_mining/                clone.py, rustitems.py (Rust item parser), mine.py, sample.py, gen15b.py
   pilot_0.5B/                    CPU pilot with Qwen2.5-Coder-0.5B
   gen_phase15_notebook.py        generator for the Phase 1.5 notebook
+  gen_multi_model_notebooks.py   generator for the Phase 2 cross-model notebooks (one per model)
 results/
   phase15b_results.json          all Phase 1.5b numbers incl. per-layer transfer curve
+  xmodel/results_<model>.json    Phase 2 numbers per model (probe, temporal, control, residualised, mouth)
   pilot_results_0.5B.csv, *.jpg  pilot table and screenshots of the Phase 1 / 1.5 result cells
 ```
 
