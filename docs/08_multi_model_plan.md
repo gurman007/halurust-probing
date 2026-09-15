@@ -1,6 +1,6 @@
 # Next step — replicating across model families (plan, Sep 11 2026; status updated Sep 15)
 
-**Status (Sep 15):** CodeLlama-7B and Gemma-2-9B done — both reproduce the Qwen pattern (mouth at chance, probe 0.77, control 0.59–0.63). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). Llama-3.1-8B notebook is ready and waits on the gated-licence approval.
+**Status (Sep 16):** CodeLlama-7B, Gemma-2-9B and Llama-3.1-8B done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.77, control 0.59–0.63). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
 
 Prof. Yang asked for the result to be tested on other models (Mistral, Code Llama, GPT, Llama 3, …).
 
