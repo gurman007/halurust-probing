@@ -1,0 +1,22 @@
+{
+ "model": "Mistral-Small-24B",
+ "base": "mistralai/Mistral-Small-24B-Base-2501",
+ "instruct": "mistralai/Mistral-Small-24B-Instruct-2501",
+ "layers": 40,
+ "best_layer": 17,
+ "probe": {"pairwise": [0.7872807017543859, 0.7346491228070176, 0.8377192982456141, 228], "auc": 0.602296786389414, "eqlen": 0.7361111111111112},
+ "temporal": [0.8392857142857143, 0.7410714285714286, 0.9285714285714286, 56],
+ "control": {"nonfix": [0.6438053097345132, 0.581858407079646, 0.7057522123893806, 226], "bugfix": [0.7023809523809523, 0.5595238095238095, 0.8333333333333334, 42], "len_rule": 0.8008849557522124, "gap": 0.1434753920198727},
+ "residualised": [0.7894736842105263, 0.7346491228070176, 0.8399122807017544, 228],
+ "length_floor": {"pairwise": 0.8048245614035088, "eqlen": 0.6805555555555556},
+ "mouth": {
+  "ladder": {
+   "zero-shot": {"auc": 0.5352930056710775, "pairwise": 0.5745614035087719, "eqlen": 0.5277777777777778, "acc": 0.508695652173913},
+   "expert": {"auc": 0.5364650283553875, "pairwise": 0.5745614035087719, "eqlen": 0.6388888888888888, "acc": 0.5}
+  },
+  "ab": [0.5, 0.4342105263157895, 0.5657894736842105, 228]
+ },
+ "compute": "Colab Enterprise (GCP project halurust-thesis), us-east4, g2-standard-4 with 1x NVIDIA L4 (24 GB); base model 4-bit ~14 GB VRAM. HF cache redirected to the 100 GB data disk (/content) because the 94 GB boot disk could not hold the 47 GB base download; base cache deleted before the Instruct download.",
+ "date": "2026-09-16",
+ "notebook": "Colab Enterprise notebook xmodel_mistral24b.ipynb (us-east4); executed copy in notebooks/"
+}
