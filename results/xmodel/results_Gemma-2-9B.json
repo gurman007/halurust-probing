@@ -1,0 +1,24 @@
+{
+ "model": "Gemma-2-9B",
+ "base": "google/gemma-2-9b",
+ "instruct": "google/gemma-2-9b-it",
+ "layers": 42,
+ "best_layer": 21,
+ "probe": {"pairwise": [0.7675438596491229, 0.7105263157894737, 0.8201754385964912, 228], "auc": 0.5799905482041587, "eqlen": 0.6944444444444444},
+ "temporal": [0.8571428571428571, 0.7674107142857145, 0.9464285714285714, 56],
+ "control": {"nonfix": [0.5907079646017699, 0.5265486725663717, 0.6504424778761062, 226], "bugfix": [0.6785714285714286, 0.5357142857142857, 0.8095238095238095, 42], "len_rule": 0.8008849557522124, "gap": 0.17683589504735298},
+ "residualised": [0.7807017543859649, 0.7258771929824561, 0.8333333333333334, 228],
+ "length_floor": {"pairwise": 0.8048245614035088, "eqlen": 0.6805555555555556},
+ "mouth": {
+  "ladder": {
+   "zero-shot": {"auc": 0.5143856332703214, "pairwise": 0.5175438596491229, "eqlen": 0.5, "acc": 0.49782608695652175},
+   "expert": {"auc": 0.4929489603024575, "pairwise": 0.4692982456140351, "eqlen": 0.5277777777777778, "acc": 0.4826086956521739}
+  },
+  "ab": [0.5219298245614035, 0.45614035087719296, 0.5833333333333334, 228],
+  "oom_fallbacks": 0,
+  "fallback_tokens": [1800, 800]
+ },
+ "notes": "Gemma-2 needs eager attention (softcapping). The stock mouth cell ran out of GPU memory on the T4 because it materialised full-vocabulary (256k) logits for every position; the mouth was re-run with logits_to_keep=1 (last position only) and an OOM fallback to shorter clips, which was never triggered (oom_fallbacks=0), so all prompts used the same 3000/1400-token clips as the other models.",
+ "date": "2026-09-15",
+ "colab": "https://colab.research.google.com/drive/1RFVfdTUjRzGJy80ZeUTNT4VFAftTEoFF"
+}
