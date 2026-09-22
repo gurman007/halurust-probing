@@ -1,0 +1,23 @@
+{
+ "model": "CodeGemma-7B",
+ "base": "google/codegemma-7b",
+ "instruct": "google/codegemma-7b-it",
+ "layers": 28,
+ "best_layer": 13,
+ "probe": {"pairwise": [0.803, 0.752, 0.853, 228], "auc": 0.594, "eqlen": 0.750},
+ "temporal": [0.821, 0.714, 0.911, 56],
+ "control": {"nonfix": [0.631, 0.566, 0.690, 226], "bugfix": [0.726, 0.583, 0.857, 42], "len_rule": 0.8008849557522124, "gap": 0.172},
+ "residualised": [0.776, 0.721, 0.831, 228],
+ "residualised_auc": 0.597,
+ "length_floor": {"pairwise": 0.8048245614035088, "eqlen": 0.6805555555555556},
+ "mouth": {
+  "ladder": {
+   "zero-shot": {"auc": 0.48457466918714553, "pairwise": 0.4473684210526316, "eqlen": 0.3888888888888889, "acc": 0.5},
+   "expert": {"auc": 0.4862003780718337, "pairwise": 0.4824561403508772, "eqlen": 0.5, "acc": 0.49782608695652175}
+  },
+  "ab": [0.47368421052631576, 0.40789473684210525, 0.5394736842105263, 228]
+ },
+ "notes": "Brain and mouth were computed in two different kernels: the Colab runtime was recycled (browser disconnected for several days) between the brain run (2026-09-18) and the mouth run (2026-09-22). The brain figures were therefore transcribed from the notebook's printed output (3 decimal places; the point estimates correspond to 183/228, 27/36, 46/56, 142.5/226, 30.5/42 and 177/228). Mouth figures are full precision from the kernel that computed them. The JSON-writing cell of the notebook was not run; this file was assembled from the two outputs. Same probe settings as the other five models (mean-pooled hidden states, StandardScaler+LogisticRegression C=0.5, CVE-grouped 5-fold CV, 5000-resample bootstrap CIs, 3000/1400-token clips for the mouth).",
+ "date": "2026-09-22",
+ "colab": "https://colab.research.google.com/drive/1KTXSWpDybBdC_IIKnE-yiF_4B2OkTWAj"
+}
