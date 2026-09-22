@@ -1,4 +1,4 @@
-# Probing Study — Design + Phase 1, 1.5, 1.5b & 2 RESULTS (rev. 9, Sep 22 2026)
+# Probing Study — Design + Phase 1, 1.5, 1.5b & 2 RESULTS (rev. 10, Sep 22 2026)
 
 Working title: **"Beyond What Code LLMs Say: Probing Internal Representations for Rust Vulnerability Detection."**
 
@@ -9,62 +9,72 @@ Prof. Yang asked for the result to be replicated outside Qwen. The same notebook
 model: 228 audited CVE pairs, 4-bit base model, mean-pooled hidden states, CVE-grouped 5-fold CV with the best
 layer chosen inside CV, 5,000-resample bootstrap CIs, temporal split (train < 2024, test 2024+, n = 56),
 length-residualised probe, transfer of the CVE-trained probe to the 226 length-matched non-security pairs and
-the 42 bug-fix pairs, and the three mouth prompts on the Instruct sibling (first-answer-token probabilities).
+the 42 bug-fix pairs, and the three mouth prompts on the Instruct sibling (first-answer-token probabilities; for Codestral-22B the one
+shipped checkpoint plays both roles — it has a chat template).
 MAX_TOKENS = 3000 for single functions, 1400 per twin in the A/B prompt, for every model.
 
-| | Qwen2.5-Coder-7B (Phase 1.5/1.5b) | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B | CodeGemma-7B |
-|---|---|---|---|---|---|---|
-| base / instruct | Qwen2.5-Coder-7B / -Instruct | CodeLlama-7b-hf / -Instruct-hf | gemma-2-9b / gemma-2-9b-it | Llama-3.1-8B / -Instruct | Mistral-Small-24B-Base-2501 / -Instruct-2501 | codegemma-7b / codegemma-7b-it |
-| best layer | 24 of 28 | 26 of 32 | 21 of 42 | 14 of 32 | 17 of 40 | 13 of 28 |
-| **Mouth** zero-shot / expert / A-B | 0.50 / 0.54 / 0.50 | 0.382 / 0.421 / 0.500 [0.434, 0.566] | 0.518 / 0.469 / 0.522 [0.456, 0.583] | 0.553 / 0.522 / 0.500 [0.434, 0.566] | 0.575 / 0.575 / 0.500 [0.434, 0.566] | 0.447 / 0.482 / 0.474 [0.408, 0.539] |
-| Length rule (CVE pairs) | 0.805 | 0.805 | 0.805 | 0.805 | 0.805 | 0.805 |
-| **Brain** probe, pairwise | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] | **0.803** [0.752, 0.853] |
-| Brain, single-sample AUC | ~0.60 | 0.578 | 0.580 | 0.576 | 0.602 | 0.594 |
-| Brain, temporal (2024+, n = 56) | 0.830 [0.723, 0.920] | 0.804 [0.696, 0.911] | 0.857 [0.767, 0.946] | 0.821 [0.714, 0.911] | 0.839 [0.741, 0.929] | 0.821 [0.714, 0.911] |
-| Brain, length-residualised | 0.833 [0.785, 0.879] | 0.776 [0.721, 0.829] | 0.781 [0.726, 0.833] | 0.772 [0.719, 0.825] | 0.789 [0.735, 0.840] | 0.776 [0.721, 0.831] |
-| **Control** non-security patches (n = 226) | **0.606** [0.542, 0.668] | **0.628** [0.566, 0.688] | **0.591** [0.527, 0.650] | **0.597** [0.535, 0.659] | **0.644** [0.582, 0.706] | **0.631** [0.566, 0.690] |
-| Control, length rule on those pairs | 0.801 | 0.801 | 0.801 | 0.801 | 0.801 | 0.801 |
-| Control, bug-fix commits (n = 42) | 0.667 [0.524, 0.798] | 0.702 [0.560, 0.833] | 0.679 [0.536, 0.810] | 0.643 [0.500, 0.786] | 0.702 [0.560, 0.833] | 0.726 [0.583, 0.857] |
-| Security-specific gap (CVE − non-security) | 0.190 | 0.141 | 0.177 | 0.164 | 0.143 | 0.172 |
+| | Qwen2.5-Coder-7B (Phase 1.5/1.5b) | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B | CodeGemma-7B | Codestral-22B |
+|---|---|---|---|---|---|---|---|
+| base / instruct | Qwen2.5-Coder-7B / -Instruct | CodeLlama-7b-hf / -Instruct-hf | gemma-2-9b / gemma-2-9b-it | Llama-3.1-8B / -Instruct | Mistral-Small-24B-Base-2501 / -Instruct-2501 | codegemma-7b / codegemma-7b-it | Codestral-22B-v0.1 (single checkpoint) |
+| best layer | 24 of 28 | 26 of 32 | 21 of 42 | 14 of 32 | 17 of 40 | 13 of 28 | 21 of 56 |
+| **Mouth** zero-shot / expert / A-B | 0.50 / 0.54 / 0.50 | 0.382 / 0.421 / 0.500 [0.434, 0.566] | 0.518 / 0.469 / 0.522 [0.456, 0.583] | 0.553 / 0.522 / 0.500 [0.434, 0.566] | 0.575 / 0.575 / 0.500 [0.434, 0.566] | 0.447 / 0.482 / 0.474 [0.408, 0.539] | 0.539 / 0.500 / 0.500 [0.434, 0.566] |
+| Length rule (CVE pairs) | 0.805 | 0.805 | 0.805 | 0.805 | 0.805 | 0.805 | 0.805 |
+| **Brain** probe, pairwise | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] | **0.803** [0.752, 0.853] | **0.774** [0.721, 0.827] |
+| Brain, single-sample AUC | ~0.60 | 0.578 | 0.580 | 0.576 | 0.602 | 0.594 | 0.607 |
+| Brain, temporal (2024+, n = 56) | 0.830 [0.723, 0.920] | 0.804 [0.696, 0.911] | 0.857 [0.767, 0.946] | 0.821 [0.714, 0.911] | 0.839 [0.741, 0.929] | 0.821 [0.714, 0.911] | 0.830 [0.732, 0.920] |
+| Brain, length-residualised | 0.833 [0.785, 0.879] | 0.776 [0.721, 0.829] | 0.781 [0.726, 0.833] | 0.772 [0.719, 0.825] | 0.789 [0.735, 0.840] | 0.776 [0.721, 0.831] | 0.772 [0.717, 0.825] |
+| **Control** non-security patches (n = 226) | **0.606** [0.542, 0.668] | **0.628** [0.566, 0.688] | **0.591** [0.527, 0.650] | **0.597** [0.535, 0.659] | **0.644** [0.582, 0.706] | **0.631** [0.566, 0.690] | **0.637** [0.575, 0.697] |
+| Control, length rule on those pairs | 0.801 | 0.801 | 0.801 | 0.801 | 0.801 | 0.801 | 0.801 |
+| Control, bug-fix commits (n = 42) | 0.667 [0.524, 0.798] | 0.702 [0.560, 0.833] | 0.679 [0.536, 0.810] | 0.643 [0.500, 0.786] | 0.702 [0.560, 0.833] | 0.726 [0.583, 0.857] | 0.726 [0.583, 0.857] |
+| Security-specific gap (CVE − non-security) | 0.190 | 0.141 | 0.177 | 0.164 | 0.143 | 0.172 | 0.137 |
 
 Raw numbers: `results/xmodel/results_<model>.json`. Executed notebooks: `notebooks/xmodel_codellama7b.ipynb`,
 `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`,
-`notebooks/xmodel_codegemma7b.ipynb`.
-The 7–9B models (incl. CodeGemma) ran on the free Colab T4; Mistral-Small-24B needed an NVIDIA L4 (24 GB) on Colab Enterprise
-(GCP project `halurust-thesis`, us-east4, ~1.5 h, paid from the education credit).
+`notebooks/xmodel_codegemma7b.ipynb`, `notebooks/xmodel_codestral22b.ipynb`.
+The 7–9B models (incl. CodeGemma) ran on the free Colab T4; Mistral-Small-24B and Codestral-22B needed an NVIDIA L4 (24 GB) on
+Colab Enterprise (GCP project `halurust-thesis`, us-east4, ~1.5 h and ~1.9 h respectively, paid from the education credit).
 
 ### Reading
 
 1. **The say–know gap is not a Qwen artefact.** In a code model with a mid-2023 training cutoff (CodeLlama),
    in a general-purpose model from a third family (Gemma-2, the family HALURust's own classifier comes from), in
    Llama-3.1-8B and in the 3× larger Mistral-Small-24B, the mouth is at chance on all three prompts while the
-   probe reads 0.76–0.79 — the same shape as Qwen's 0.50 vs 0.80. Five families (six base/instruct pairs, counting CodeGemma), six times the same picture.
+   probe reads 0.76–0.79 — the same shape as Qwen's 0.50 vs 0.80. Five families, seven models (counting the two
+   code siblings CodeGemma and Codestral), seven times the same picture.
    Mistral-24B's yes/no prompts are the best mouth we have seen (0.575, AUC 0.54) — still far below its own probe
    (0.787) and its A/B forced choice is exactly 0.500.
    CodeGemma-7B — Prof. Yang's requested code sibling of Gemma — has the *best brain of all six* (0.803, temporal
    0.821) and a mouth *below* chance on all three prompts (0.447 / 0.482 / 0.474): the widest say–know gap so far.
+   Codestral-22B — the code sibling of Mistral-Small-24B, and the one model whose brain and mouth are the *same*
+   checkpoint — reads 0.774 internally and answers 0.54 / 0.50 / 0.50 (A/B exactly 0.500 again).
    CodeLlama's yes/no prompts are likewise *below* chance (0.38 / 0.42): its Instruct model says "vulnerable"
    slightly more often for the *fixed* twin, i.e. it is reacting to something like code length or added checks,
    not to the vulnerability.
 2. **The temporal test is strongest where it matters most.** CodeLlama's training data ends before most of the
    2024+ CVEs were disclosed, and its probe still transfers at 0.80 to those pairs. Gemma-2 (released June 2024)
-   reads 0.86, Llama-3.1 (released July 2024) 0.82 and Mistral-Small (January 2025) 0.84 on the same 56 pairs.
+   reads 0.86, Llama-3.1 (released July 2024) 0.82, Mistral-Small (January 2025) 0.84 and Codestral (May 2024) 0.83 on the
+   same 56 pairs.
    Memorised labels cannot explain this.
 3. **The non-security control replicates.** On ordinary patches with the identical length pattern the length
-   rule stays at 0.80 but the probe drops to 0.59–0.64 in all six models; the ordering ordinary < bug-fix <
+   rule stays at 0.80 but the probe drops to 0.59–0.64 in all seven models; the ordering ordinary < bug-fix <
    security fix holds in every model. The security-specific part of the signal is 0.14–0.19 pairwise points,
    with the remaining ~0.10–0.14 being a generic "older version" sense shared across families. Mistral-24B has
    the highest control score (0.644): the bigger model has a slightly stronger generic "before/after" sense, but
-   its security-specific gap (0.143) is the same size as CodeLlama's.
+   its security-specific gap (0.143) is the same size as CodeLlama's. Codestral-22B behaves like its sibling
+   (control 0.637, gap 0.137 — the smallest of the seven, but within a few points of the others).
 4. **Absolute level is similar across families and sizes (0.76–0.80)** even though the models differ in size,
    corpus and cutoff; the two code-specialised 7B models (CodeGemma 0.803, Qwen 0.796) are marginally best, the two general-purpose 8–9B models are not
-   behind CodeLlama, and tripling the parameter count (Mistral-24B, 0.787) buys at most 2 points. Single-sample
-   AUC is modest (0.58–0.60) in all six — the probe is a *comparative* detector. Best layer sits at 43–85% of
-   depth in every model (Qwen 24/28, CodeLlama 26/32, Gemma 21/42, Llama 14/32, Mistral 17/40, CodeGemma 13/28).
+   behind CodeLlama, and tripling the parameter count (Mistral-24B 0.787, Codestral-22B 0.774) buys nothing. Single-sample
+   AUC is modest (0.58–0.61) in all seven — the probe is a *comparative* detector. Best layer sits at 38–85% of
+   depth in every model (Qwen 24/28, CodeLlama 26/32, Gemma 21/42, Llama 14/32, Mistral 17/40, CodeGemma 13/28,
+   Codestral 21/56).
 5. **Code sibling vs general sibling inside one family (Gemma-2-9B 0.768 vs CodeGemma-7B 0.803).** The smaller
    code-tuned model reads the vulnerability slightly better internally while its Instruct mouth is slightly worse
    (0.45–0.48 vs 0.47–0.52) — code pre-training sharpens what the model *knows* without helping what it *says*.
-   CIs overlap, so this is a direction to test with Codestral-22B vs Mistral-Small-24B, not yet a finding.
+   The second family says otherwise: Codestral-22B (0.774) reads slightly *worse* than Mistral-Small-24B (0.787) and
+   its mouth is also slightly worse (0.54/0.50/0.50 vs 0.58/0.58/0.50). CIs overlap in both families, so "code
+   pre-training sharpens the brain" is **not** supported — code vs general sibling makes no measurable difference
+   to either the brain or the mouth. Report it as a null result.
 
 ### Caveats specific to Phase 2
 
@@ -89,8 +99,14 @@ The 7–9B models (incl. CodeGemma) ran on the free Colab T4; Mistral-Small-24B 
   the two printed outputs (brain figures at 3 d.p.; `results/xmodel/results_CodeGemma-7B.json` `notes`). A stray
   ValueError in the extraction cell (an unnecessary base-model reload while the Instruct model still held the GPU)
   is explained by a text cell in the notebook and has no bearing on the numbers.
-- Still open: Codestral-22B (the code sibling of Mistral-Small-24B, L4 on Colab Enterprise), DeepSeek-Coder-6.7B
-  and StarCoder2-7B (ungated, T4), and a Qwen2.5-Coder size sweep (1.5B/14B/32B)
+- Codestral-22B (Sep 22, Colab Enterprise L4, ~1.9 h): `mistralai/Codestral-22B-v0.1` ships one checkpoint that is both
+  base and instruct (it has a chat template), so `MODEL_BASE == MODEL_INSTRUCT`, one 44 GB download and no cache
+  deletion between the brain and mouth cells; the repo was ungated on the Hub at run time. The notebook was built from
+  the Mistral-24B one (same generator cells; config + cache-symlink cell changed). One stray failed execution of the
+  extraction cell (an accidental re-run, `ValueError: modules dispatched on the CPU`, 0.6 s, after the real run had
+  completed) is visible in the notebook and has no bearing on the numbers. Because brain and mouth are the same
+  weights, this is the first model where the say–know gap cannot be attributed to base-vs-instruct differences.
+- Still open: DeepSeek-Coder-6.7B and StarCoder2-7B (ungated, T4), and a Qwen2.5-Coder size sweep (1.5B/14B/32B)
   for a clean scale curve inside one family.
 
 ## ★★★ PHASE 1.5b RESULT — the controls: security or patch-shape? (Colab T4, Sep 2 2026)

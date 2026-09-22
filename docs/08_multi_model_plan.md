@@ -1,6 +1,6 @@
 # Next step — replicating across model families (plan, Sep 11 2026; status updated Sep 15)
 
-**Status (Sep 22):** CodeLlama-7B, Gemma-2-9B, Llama-3.1-8B, Mistral-Small-24B and CodeGemma-7B done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.80, control 0.59–0.64). Prof. Yang asked for a code sibling per family: CodeLlama ✓, CodeGemma ✓ (best brain 0.803, mouth below chance), Codestral-22B next (notebook `xmodel_codestral22b.ipynb` generated; needs the L4 on Colab Enterprise). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). The 24B ran on Colab Enterprise (us-east4, L4) — us-central1 had no L4 stock. Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
+**Status (Sep 22):** CodeLlama-7B, Gemma-2-9B, Llama-3.1-8B, Mistral-Small-24B, CodeGemma-7B and Codestral-22B done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.80, control 0.59–0.64). Prof. Yang asked for a code sibling per family: CodeLlama ✓, CodeGemma ✓ (best brain 0.803, mouth below chance), Codestral-22B ✓ (0.774 / mouth 0.54–0.50; L4 on Colab Enterprise, ~1.9 h; ungated, one checkpoint for brain and mouth). Code-vs-general sibling is a null result (Gemma family +0.035, Mistral family −0.013, CIs overlap). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). The 24B and Codestral ran on Colab Enterprise (us-east4, L4) — us-central1 had no L4 stock. Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
 
 Prof. Yang asked for the result to be tested on other models (Mistral, Code Llama, GPT, Llama 3, …).
 
@@ -24,7 +24,7 @@ say–know gap grow or shrink with scale); a direct link to HALURust's own model
 | 5 | DeepSeek-Coder-6.7B (base + instruct) | second strong code family, different corpus | Colab T4 |
 | 6 | StarCoder2-7B | training data (The Stack v2) is public → contamination checkable; base only | Colab T4 |
 | 7 | Mistral-7B-v0.3 (+Instruct) | second general family | Colab T4 (gated) |
-| GCP | Qwen2.5-Coder-32B-Instruct, Codestral-22B | does it hold at scale; ~$20–30 of credit | GCP L4/A100 |
+| GCP | Qwen2.5-Coder-32B-Instruct (Codestral-22B ✓ done) | does it hold at scale; ~$20–30 of credit | GCP L4/A100 |
 | mouth only | Gemini 2.5 Flash/Pro via Vertex (credit-covered); GPT-4o/5 if a key is available | frontier mouth baseline | API |
 
 **Per model, run the same three measurements** as for Qwen-7B: best-layer probe on the 228 CVE pairs
