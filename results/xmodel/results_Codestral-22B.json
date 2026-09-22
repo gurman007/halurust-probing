@@ -1,0 +1,72 @@
+{
+ "model": "Codestral-22B",
+ "base": "mistralai/Codestral-22B-v0.1",
+ "instruct": "mistralai/Codestral-22B-v0.1",
+ "layers": 56,
+ "best_layer": 21,
+ "probe": {
+  "pairwise": [
+   0.7741228070175439,
+   0.7214912280701754,
+   0.8267543859649122,
+   228
+  ],
+  "auc": 0.606531190926276,
+  "eqlen": 0.7083333333333334
+ },
+ "temporal": [
+  0.8303571428571429,
+  0.7321428571428571,
+  0.9196428571428571,
+  56
+ ],
+ "control": {
+  "nonfix": [
+   0.6371681415929203,
+   0.5752212389380531,
+   0.6969026548672567,
+   226
+  ],
+  "bugfix": [
+   0.7261904761904762,
+   0.5833333333333334,
+   0.8571428571428571,
+   42
+  ],
+  "len_rule": 0.8008849557522124,
+  "gap": 0.13695466542462353
+ },
+ "residualised": [
+  0.7719298245614035,
+  0.7171052631578947,
+  0.8245614035087719,
+  228
+ ],
+ "length_floor": {
+  "pairwise": 0.8048245614035088,
+  "eqlen": 0.6805555555555556
+ },
+ "mouth": {
+  "ladder": {
+   "zero-shot": {
+    "auc": 0.5194990548204159,
+    "pairwise": 0.5394736842105263,
+    "eqlen": 0.5555555555555556,
+    "acc": 0.5065217391304347
+   },
+   "expert": {
+    "auc": 0.5124480151228734,
+    "pairwise": 0.5,
+    "eqlen": 0.6111111111111112,
+    "acc": 0.5130434782608696
+   }
+  },
+  "ab": [
+   0.5,
+   0.4342105263157895,
+   0.5657894736842105,
+   228
+  ]
+ },
+ "notes": "Run Sep 22 2026 on Colab Enterprise (halurust-thesis, us-east4, g2-standard-4 / 1x L4 24 GB). Codestral-22B-v0.1 is a single checkpoint that serves as both base (brain) and instruct (mouth; it ships a chat template), so MODEL_BASE == MODEL_INSTRUCT and no cache deletion between cells 5 and 8. Repo was ungated on the Hub at run time (no HF token used). Executed notebook: notebooks/xmodel_codestral22b.ipynb. JSON transcribed from the notebook's printed results (cells 9/10); values are the printed floats; gap = probe - control.nonfix recomputed."
+}
