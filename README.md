@@ -42,22 +42,22 @@ The probe was re-run with bootstrap confidence intervals and, on the same pairs,
 To answer that, we built a control set. From the same repositories we mined 1,133 ordinary before/after function pairs from commits that were not security fixes — no advisory, no security vocabulary in the commit message, not adjacent to a known fix — and selected 226 whose length pattern matches the CVE pairs almost exactly (79% vs 80% "after is longer"; the length rule scores 0.80 on both sets). Then we applied the CVE-trained probe to them. If the probe had learned "shorter means vulnerable", it would score about 0.80 here too. **It scored 0.61.** Two further checks agreed: removing length from the activations made the probe better, not worse (0.80 → 0.83), and padding the vulnerable twin with comments until it became the longer one did not change its choice. The control set also included 42 non-security bug-fix commits, where the probe scored 0.67.
 → `notebooks/phase15b_controls_v2.ipynb`, `data/control_pairs.zip`, `code/control_mining/`
 
-### 5. Does it hold in other model families? (Phase 2, Sep 13–16)
+### 5. Does it hold in other model families? (Phase 2, Sep 13–22)
 
-Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on four more families: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on), **Llama-3.1-8B** (general-purpose) and **Mistral-Small-24B** (three times the size; run on a GCP L4). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
+Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on four more families plus a code sibling: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on), **Llama-3.1-8B** (general-purpose) **Mistral-Small-24B** (three times the size; run on a GCP L4) and **CodeGemma-7B** (the code-specialised sibling of Gemma, added at Prof. Yang's request so that each family has a code model). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
 
-| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B |
-|---|---|---|---|---|---|
-| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 | 0.58 / 0.58 / 0.50 |
-| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] |
-| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 | 0.839 |
-| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 | 0.789 |
-| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** | **0.644** |
-| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 | 0.702 |
-| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
+| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B | CodeGemma-7B |
+|---|---|---|---|---|---|---|
+| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 | 0.58 / 0.58 / 0.50 | 0.45 / 0.48 / 0.47 |
+| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] | **0.803** [0.752, 0.853] |
+| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 | 0.839 | 0.821 |
+| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 | 0.789 | 0.776 |
+| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** | **0.644** | **0.631** |
+| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 | 0.702 | 0.726 |
+| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
 
-Five families, one picture: the mouth is at a coin flip everywhere (CodeLlama's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing.
-→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
+Five families, six models, one picture: the mouth is at a coin flip everywhere (CodeLlama's and CodeGemma's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing. CodeGemma-7B has the best brain of the six (0.803) and the worst mouth — the widest say–know gap so far.
+→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `notebooks/xmodel_codegemma7b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
 
 ## The numbers
 
@@ -118,6 +118,7 @@ notebooks/
   xmodel_gemma2_9b.ipynb         Phase 2: same pipeline on Gemma-2-9B (+it)
   xmodel_llama31_8b.ipynb        Phase 2: same pipeline on Llama-3.1-8B (+Instruct)
   xmodel_mistral24b.ipynb        Phase 2: same pipeline on Mistral-Small-24B (GCP L4)
+  xmodel_codegemma7b.ipynb       Phase 2: same pipeline on CodeGemma-7B (+it)
 data/
   halurust_metadata.csv          245 CVEs: cwe, crate, repo, rustsec_id, dates, never_patched, audit verdict
   Halurust_SHA_audit.xlsx        the dataset sheet + 10 audit columns
