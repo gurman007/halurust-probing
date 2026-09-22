@@ -1,7 +1,7 @@
 # Beyond What Code LLMs Say — Probing Internal Representations for Rust Vulnerability Detection
 
 M.S. thesis project · Gurman Singh Marahar · Texas A&M University–San Antonio · advisor Prof. Yang
-Progress brief, September 2026 (updated Sep 16 with the cross-model replication). All 7–9B experiments run on a free Colab T4; the 24B model on a GCP L4.
+Progress brief, September 2026 (updated Sep 22 with the cross-model replication). All 7–9B experiments run on a free Colab T4; the 22B and 24B models on a GCP L4.
 
 ---
 
@@ -44,20 +44,20 @@ To answer that, we built a control set. From the same repositories we mined 1,13
 
 ### 5. Does it hold in other model families? (Phase 2, Sep 13–22)
 
-Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on four more families plus a code sibling: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on), **Llama-3.1-8B** (general-purpose) **Mistral-Small-24B** (three times the size; run on a GCP L4) and **CodeGemma-7B** (the code-specialised sibling of Gemma, added at Prof. Yang's request so that each family has a code model). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
+Prof. Yang asked whether the result is specific to Qwen. The identical pipeline — probe, mouth, temporal split, non-security control — was rerun on four more families plus two code siblings: **CodeLlama-7B** (code model, training data ends mid-2023, so most of the 2024+ CVEs post-date it), **Gemma-2-9B** (general-purpose; the family HALURust's own classifier was built on), **Llama-3.1-8B** (general-purpose) **Mistral-Small-24B** (three times the size; run on a GCP L4) **CodeGemma-7B** (the code-specialised sibling of Gemma, added at Prof. Yang's request so that each family has a code model) and **Codestral-22B** (the code sibling of Mistral-Small; one checkpoint serves as both brain and mouth; GCP L4). Same 228 pairs, same 226 control pairs, same prompts and clip lengths.
 
-| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B | CodeGemma-7B |
-|---|---|---|---|---|---|---|
-| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 | 0.58 / 0.58 / 0.50 | 0.45 / 0.48 / 0.47 |
-| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] | **0.803** [0.752, 0.853] |
-| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 | 0.839 | 0.821 |
-| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 | 0.789 | 0.776 |
-| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** | **0.644** | **0.631** |
-| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 | 0.702 | 0.726 |
-| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
+| | Qwen2.5-Coder-7B | CodeLlama-7B | Gemma-2-9B | Llama-3.1-8B | Mistral-Small-24B | CodeGemma-7B | Codestral-22B |
+|---|---|---|---|---|---|---|---|
+| Mouth — zero-shot / expert / A-B forced choice | 0.50 / 0.54 / 0.50 | 0.38 / 0.42 / 0.50 | 0.52 / 0.47 / 0.52 | 0.55 / 0.52 / 0.50 | 0.58 / 0.58 / 0.50 | 0.45 / 0.48 / 0.47 | 0.54 / 0.50 / 0.50 |
+| **Brain — linear probe (CVE pairs)** | **0.796** [0.746, 0.846] | **0.770** [0.715, 0.825] | **0.768** [0.711, 0.820] | **0.761** [0.706, 0.814] | **0.787** [0.735, 0.838] | **0.803** [0.752, 0.853] | **0.774** [0.721, 0.827] |
+| Brain — trained pre-2024, tested 2024+ (n = 56) | 0.830 | 0.804 | 0.857 | 0.821 | 0.839 | 0.821 | 0.830 |
+| Brain — length regressed out | 0.833 | 0.776 | 0.781 | 0.772 | 0.789 | 0.776 | 0.772 |
+| **Control — same probe on non-security patches** | **0.606** | **0.628** | **0.591** | **0.597** | **0.644** | **0.631** | **0.637** |
+| Control — non-security bug fixes (n = 42) | 0.667 | 0.702 | 0.679 | 0.643 | 0.702 | 0.726 | 0.726 |
+| Length rule (CVE pairs / control pairs) | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 | 0.805 / 0.801 |
 
-Five families, six models, one picture: the mouth is at a coin flip everywhere (CodeLlama's and CodeGemma's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing. CodeGemma-7B has the best brain of the six (0.803) and the worst mouth — the widest say–know gap so far.
-→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `notebooks/xmodel_codegemma7b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
+Five families, seven models, one picture: the mouth is at a coin flip everywhere (CodeLlama's and CodeGemma's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing. CodeGemma-7B has the best brain of the seven (0.803) and the worst mouth — the widest say–know gap so far. Code vs general sibling inside a family makes no measurable difference (CodeGemma 0.803 vs Gemma-2 0.768, but Codestral 0.774 vs Mistral-Small 0.787; CIs overlap both ways). Codestral is also the one model whose brain and mouth are literally the same weights, so its gap (0.774 vs 0.50) cannot be a base-vs-instruct artefact.
+→ `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `notebooks/xmodel_codegemma7b.ipynb`, `notebooks/xmodel_codestral22b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
 
 ## The numbers
 
@@ -91,7 +91,7 @@ The single-sample AUC is modest, around 0.60: the probe is much better at saying
 
 ## What comes next
 
-Two directions are open. **Generality:** CodeLlama, Gemma-2, Llama 3.1 and Mistral-24B are done; next are DeepSeek-Coder, StarCoder2 and a Qwen size sweep, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
+Two directions are open. **Generality:** CodeLlama, Gemma-2, Llama 3.1, Mistral-24B, CodeGemma and Codestral-22B are done; next are DeepSeek-Coder, StarCoder2 and a Qwen size sweep, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
 
 ---
 
@@ -102,7 +102,7 @@ README.md                      this brief
 REFERENCES.md                  every paper, database and method cited, with links
 docs/
   progress_brief.html          the same brief as a formatted page
-  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 8)
+  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 10)
   02_reference_commit_audit.md             the 251-row commit audit (method, verdicts, wrong rows)
   03_probing_explainer.md                  plain-language explanation of every term (pre-Phase-1)
   04_extraction_methodology_and_audit.md   how pairs were extracted; leakage measurements; threats to validity
@@ -119,6 +119,7 @@ notebooks/
   xmodel_llama31_8b.ipynb        Phase 2: same pipeline on Llama-3.1-8B (+Instruct)
   xmodel_mistral24b.ipynb        Phase 2: same pipeline on Mistral-Small-24B (GCP L4)
   xmodel_codegemma7b.ipynb       Phase 2: same pipeline on CodeGemma-7B (+it)
+  xmodel_codestral22b.ipynb      Phase 2: same pipeline on Codestral-22B (one checkpoint = base + instruct; GCP L4)
 data/
   halurust_metadata.csv          245 CVEs: cwe, crate, repo, rustsec_id, dates, never_patched, audit verdict
   Halurust_SHA_audit.xlsx        the dataset sheet + 10 audit columns
