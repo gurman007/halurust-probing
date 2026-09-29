@@ -2,6 +2,8 @@
 
 **Status (Sep 28):** CodeLlama-7B, Gemma-2-9B, Llama-3.1-8B, Mistral-Small-24B, CodeGemma-7B, Codestral-22B and Qwen2.5-7B (general) done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.80, control 0.59–0.64). Prof. Yang asked for a code sibling per family: CodeLlama ✓, CodeGemma ✓ (best brain 0.803, mouth below chance), Codestral-22B ✓ (0.774 / mouth 0.54–0.50; L4 on Colab Enterprise, ~1.9 h; ungated, one checkpoint for brain and mouth). Every family now has a code and a general member. Code-vs-general sibling is a null result (Gemma +0.035, Mistral −0.013, Qwen +0.031 in favour of the code model; all inside the CIs). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). The 24B and Codestral ran on Colab Enterprise (us-east4, L4) — us-central1 had no L4 stock. Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
 
+**Phase 4 (Sep 29):** first fine-tuning point done — QLoRA on Qwen2.5-Coder-7B-Instruct, 5-fold: tuned mouth 0.553 [0.489, 0.618] / A-B 0.526, probe on the tuned model 0.706 vs 0.737 untuned Instruct (base 0.796); the adapter learned the answer format and label balance, not the mapping. Side result: the probe on the *Instruct* checkpoint's own hidden states reads 0.737 — the gap inside one set of weights. Next: a recipe that memorises the training folds, 5 seeds, closure curve. Details in `01_probing_study_design_and_results.md` (Phase 4).
+
 Prof. Yang asked for the result to be tested on other models (Mistral, Code Llama, GPT, Llama 3, …).
 
 **Constraint that shapes the choice.** The "brain" measurement needs the model's hidden states, so it

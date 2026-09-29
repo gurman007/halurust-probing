@@ -1,6 +1,88 @@
-# Probing Study — Design + Phase 1, 1.5, 1.5b & 2 RESULTS (rev. 11, Sep 28 2026)
+# Probing Study — Design + Phase 1, 1.5, 1.5b, 2 & 4 RESULTS (rev. 12, Sep 29 2026)
 
 Working title: **"Beyond What Code LLMs Say: Probing Internal Representations for Rust Vulnerability Detection."**
+
+## ★★★★★ PHASE 4 RESULT — does fine-tuning close the say–know gap? (Colab Enterprise L4, Sep 29 2026)
+
+Prof. Yang asked for one model to be fine-tuned. Notebook `notebooks/phase4_finetune_qwen25coder7b.ipynb`
+(self-contained, data embedded), raw numbers `results/finetune/results_Qwen2.5-Coder-7B-Instruct-QLoRA.json`.
+The frozen-model result for Qwen2.5-Coder-7B is mouth 0.50 / 0.54 / 0.50 vs probe 0.796. Here the **same Instruct
+checkpoint is QLoRA-tuned to answer the yes/no question** (4-bit nf4 base, LoRA r = 16, α = 32, dropout 0.05 on every
+attention and MLP projection, 40.4 M trainable parameters = 0.53 %; lr 1e-4 with warm-up + linear decay, 2 epochs,
+gradient accumulation 8, code clipped to 2 400 tokens, loss only on the answer tokens `Yes`/`No` + end-of-turn) in
+the **same CVE-grouped 5-fold CV** as every earlier phase: each fold's adapter sees ~366 samples and is scored only on
+its ~92 held-out samples (46 pairs), the five held-out sets are pooled (n = 228 pairs) and bootstrapped. Per fold we
+re-measure the three things the earlier phases measured on frozen models: **mouth** (P1 yes/no first-token
+probability, pairwise; A/B forced choice with both orderings), **brain** (a linear probe on the *tuned* model's
+mean-pooled hidden states, layer chosen by inner CV on the training fold) and the **length-matched non-security
+control** (mouth and probe of every fold-model on the 226 non-fix pairs and 42 bug-fix pairs, averaged over the five
+fold-models). The same notebook first scores the *untuned* Instruct model on the identical folds, including — for the
+first time — a probe on the Instruct checkpoint's own hidden states. ~3.5 h of L4 time (37 min baseline + 5 × ~35 min).
+
+| | Untuned Qwen2.5-Coder-7B-Instruct | QLoRA-tuned (5 held-out folds, pooled) |
+|---|---|---|
+| **Mouth** yes/no, pairwise (AUC) | 0.518 (0.505) | **0.553** [0.489, 0.618] (0.560) |
+| Mouth, A/B forced choice | 0.531 [0.469, 0.596] | **0.526** [0.465, 0.592] |
+| Mouth, equal-length pairs (n = 36) | 0.611 | 0.361 |
+| Mouth on the 2024+ pairs (pooled held-out, n = 56) | — | 0.482 [0.357, 0.607] |
+| **Brain** probe on this checkpoint's hidden states (AUC) | **0.737** [0.682, 0.792] (0.566); layers 18/18/19/26/14 | **0.706** [0.645, 0.761] (0.563); layers 24/18/19/27/14 |
+| Brain probe on the frozen *base* (Phase 1.5) | 0.796 [0.746, 0.846] | — |
+| Length rule (CVE pairs) | 0.805 | 0.805 |
+| **Control** mouth picks "before" — non-fix (n = 226) / bug-fix (n = 42) | 0.518 / 0.690 | 0.543 [0.497, 0.588] / 0.595 [0.500, 0.686] |
+| Control probe, non-fix (length rule 0.801) | 0.571 [0.504, 0.633] | 0.603 [0.561, 0.641] |
+| Per fold — mouth / A/B / probe | | 0.500 / 0.500 / 0.630 · 0.587 / 0.522 / 0.728 · 0.598 / 0.543 / 0.793 · 0.511 / 0.556 / 0.667 · 0.567 / 0.511 / 0.711 |
+| Per fold — training loss, first → last 10 % of steps | | 0.548→0.339 · 0.526→0.341 · 0.467→0.332 · 0.542→0.350 · 0.504→0.346 |
+
+### Reading
+
+1. **Supervised fine-tuning did not close the gap.** After 2 epochs of QLoRA on ~366 labelled twins per fold the tuned
+   mouth reads 0.553 [0.489, 0.618] on held-out CVEs — the CI still contains chance — and the A/B forced choice is
+   0.526. On the 56 newest (2024+) pairs it is 0.48. The tuned model still *says* nothing its probe cannot already read.
+2. **The adapter learned the format, not the mapping.** The answer is two tokens (`Yes`/`No`, then end-of-turn). The
+   per-token training loss settles at ≈ 0.34 in every fold, i.e. ≈ 0 on the end-of-turn token and ≈ ln 2 = 0.69 on
+   the Yes/No token — chance level *on the training folds themselves*. Consistently, the tuned P(yes) is 0.488 on
+   vulnerable vs 0.477 on fixed twins, says "yes" to 50.2 % of samples and takes only 19 distinct values across 460
+   samples: the output collapsed to the label marginal (the training set is exactly balanced by construction).
+   So the honest statement is *"this recipe could not make the model say what its probe reads"* — under-training and
+   impossibility are not separated by this run (see the caveats for the obvious next recipe).
+3. **The brain did not move either.** The probe on the tuned model's hidden states reads 0.706 [0.645, 0.761] vs 0.737
+   [0.682, 0.792] on the untuned Instruct model (CIs overlap; the per-fold numbers 0.63–0.79 scatter around the untuned
+   value), and the control probe is unchanged (0.60 vs 0.57). Fine-tuning on the yes/no objective neither sharpened nor
+   erased the linear signal — the representation the probe uses and the output the adapter shapes are, on this evidence,
+   decoupled.
+4. **The Instruct checkpoint's own brain reads 0.737 — a side result that closes an old to-do.** Phases 1–2 probed the
+   *base* model and questioned the *Instruct* sibling; the standing objection was that the gap might be a base-vs-instruct
+   difference. Here the probe and the mouth are computed on the same Instruct weights: 0.737 [0.682, 0.792] internally
+   (a few points below the base's 0.796 — instruction tuning costs some of the signal, the CIs overlap) vs 0.518 / 0.531
+   spoken. Together with Codestral-22B (single checkpoint, 0.774 vs 0.54 / 0.50) the gap is now shown inside one set of
+   weights in two model families.
+5. **Control.** The tuned mouth on ordinary patches is 0.543 [0.497, 0.588] (chance; the length rule on those pairs is
+   0.80) — the adapter did not fall back on a "shorter twin is vulnerable" shortcut either, which it could have learned
+   from the training folds (79 % of CVE fixes are longer). Its equal-length score (0.361, n = 36) is below chance but
+   the sample is tiny.
+
+### Caveats specific to Phase 4
+
+- **One model, one recipe, one seed.** The pre-registered plan said 5 seeds and a say–know closure curve; this is the
+  first point of it. The recipe is deliberately light (lr 1e-4, 2 epochs, r = 16, 4-bit base, ~91 optimiser steps per
+  fold). Before the null result is called "fine-tuning cannot close the gap", the notebook should be re-run with a
+  recipe that at least *memorises* the training folds (lr 2e-4, 4–6 epochs, r = 32, or an A/B-contrast objective) —
+  if the training loss reaches ≈ 0 and the held-out mouth is still ≈ 0.5 that is the classic memorise-but-not-generalise
+  finding; if it does not, the earlier phases' probe (0.80, AUC ≈ 0.6) is simply a weak per-sample signal that 366
+  examples cannot teach an adapter. Both readings are consistent with the frozen-model results.
+- 4-bit base + bf16 embeddings/`lm_head` (PEFT's default fp32 up-cast of the embeddings was disabled to fit the card);
+  gradient checkpointing; the loss is computed from the answer-only logits (`logits_to_keep`) — identical to
+  `labels=` with `-100` on the prompt, but it does not materialise the 2 400 × 152 k logit tensor.
+- The first execution of the training cell died with CUDA OOM: a stale kernel from the Qwen2.5-7B run still held
+  9.6 GB of the 22 GB card for the whole run (it was not killed), and the notebook's `free()` had not released the
+  untuned model. Cells 7b–7f in the notebook document the diagnosis and fix; every number above is from the second,
+  complete execution. The relevant cells were typed into Colab through a browser-automation pane as `exec(base64…)`
+  one-liners; the committed notebook restores the readable source (identical code) and keeps the executed outputs.
+- Probe layer for the tuned model is chosen inside the training fold (no optimistic bias); the untuned-Instruct probe
+  uses the same rule. Mouth prompts, clips (3 000 tokens single / 1 400 per twin in A/B) and YES/NO token sets are the
+  Phase 1.5 ones.
+- `tuned.mouth.post2024` is a slice of the pooled held-out scores, not a temporal split (the adapters saw pre-2024 and
+  2024+ CVEs alike).
 
 ## ★★★★ PHASE 2 RESULT — does it hold in other model families? (Colab T4 + GCP L4, Sep 13–28 2026)
 
@@ -89,9 +171,9 @@ Qwen2.5-7B (general) was also run on the L4 for speed (~55 min).
   position (`logits_to_keep=1`) with an OOM fallback to shorter clips that never fired (`oom_fallbacks = 0`),
   so the prompts and clips are identical to the other runs. The failed cell was removed from the notebook; a
   text cell records this.
-- Same two-model-per-family design as before: brain on the base model, mouth on the Instruct sibling. Probing
-  the Instruct model's own hidden states is still on the to-do list (planned check that base and instruct
-  probes agree).
+- Same two-model-per-family design as before: brain on the base model, mouth on the Instruct sibling. The Instruct
+  model's own hidden states were probed in Phase 4 for Qwen2.5-Coder-7B (0.737 [0.682, 0.792] vs 0.796 on the base;
+  see the Phase 4 section) — the gap is present inside the Instruct checkpoint as well.
 - Best layer is selected on the CVE pairs before the control/temporal tests; with 28–42 layers this is a mild
   optimistic bias on the CVE number only (the per-layer curves are flat near the optimum in all three models).
 - Llama-3.1-8B ran without incident (128k vocab fits the T4 with the stock mouth cell).
@@ -246,10 +328,10 @@ non-security-patch control, with CIs.
 - **Phase 2**: difference-vector direction, cross-CWE clustering, project-held-out split; bigger bug-fix
   stratum (security vs generic bugginess); rebuild controls with identical extraction.
 - **Phase 3**: activation steering (optional).
-- **Phase 4 (training, GCP `halurust-thesis`, $100 credit intact, GPUS_ALL_REGIONS=1, Vertex enabled)**:
-  QLoRA fine-tune → re-probe (does training move the brain or the mouth?); say–know closure curve —
-  frozen-probe 0.80 (0.83 residualised) is the pre-registered ceiling; contrastive twin encoder. 5 seeds.
-  Safe to start now that the controls passed: a fine-tune can be evaluated on the control set too.
+- **Phase 4 (training, GCP `halurust-thesis`)**: first point done (Sep 29: QLoRA on Qwen2.5-Coder-7B-Instruct, one
+  recipe, one seed — mouth 0.55, probe 0.71, see the Phase 4 section). Still to do: a recipe that memorises the training
+  folds (lr 2e-4, 4–6 epochs, r = 32, or an A/B-contrast objective), 5 seeds, the say–know closure curve against the
+  frozen-probe ceiling 0.80 (0.83 residualised), contrastive twin encoder.
 - Prior-art pass done (LPASS 2505.24451; code-correctness probing 2606.14530; circuit analysis 2605.29901;
   RustMizan 2607.04729). None: say-vs-know for security, audited real-CVE pairs, temporal split, Rust,
   non-security-patch control.
@@ -259,10 +341,14 @@ non-security-patch control, with CIs.
 1. Internal linear signal? **Yes — 0.80 pairwise, CI [0.75, 0.85]; 0.83 length-residualised.**
 2. Where? **Mid-late layers (L19–L24 of 28), mean-pool ≫ last-token.**
 3. Generalization? **Unseen CVEs yes; post-cutoff yes (0.83); projects/CWE pending.**
-3b. Say–know gap? **Measured: mouth 0.50 on all prompts vs brain 0.80. The central result.**
+3b. Say–know gap? **Measured: mouth 0.50 on all prompts vs brain 0.80. The central result.** Inside the Instruct
+    checkpoint itself: brain 0.74 vs mouth 0.52 (Phase 4 baseline).
 3c. Security or patch shape? **Predominantly security: 0.80 on CVE pairs vs 0.61 on length-matched
     ordinary patches (length rule 0.80 on both); residual generic component ≈0.1.**
-4–6. Phases 2–4 pending.
+4. Does training move the mouth or the brain? **First point (Phase 4): neither — QLoRA on the yes/no task leaves the
+   mouth at 0.55 [0.49, 0.62] and the probe at 0.71 [0.65, 0.76]; the adapter learned the answer format and the label
+   marginal only. Stronger recipe + seeds pending.**
+5–6. Pending.
 
 ## Artefacts
 - `phase15b_controls_v2.ipynb` (self-contained: CVE pairs + metadata + control pairs embedded; two data
