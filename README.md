@@ -1,7 +1,7 @@
 # Beyond What Code LLMs Say — Probing Internal Representations for Rust Vulnerability Detection
 
 M.S. thesis project · Gurman Singh Marahar · Texas A&M University–San Antonio · advisor Prof. Yang
-Progress brief, September 2026 (updated Sep 28 with the cross-model replication). The 7–9B experiments ran on a free Colab T4 (Qwen2.5-7B on a GCP L4 for speed); the 22B and 24B models on a GCP L4.
+Progress brief, September 2026 (updated Sep 29 with the first fine-tuning result). The 7–9B experiments ran on a free Colab T4 (Qwen2.5-7B on a GCP L4 for speed); the 22B and 24B models and the fine-tuning on a GCP L4.
 
 ---
 
@@ -59,6 +59,20 @@ Prof. Yang asked whether the result is specific to Qwen. The identical pipeline 
 Five families, eight models (a code and a general model in each), one picture: the mouth is at a coin flip everywhere (CodeLlama's and CodeGemma's yes/no answers are even slightly *inverted*; the 24B model's are the best, at 0.58, and still nowhere near its own probe), the brain reads 0.76–0.80, the signal survives on CVEs disclosed after the models' training data, and it drops to 0.59–0.64 on ordinary patches with the same length pattern. Tripling model size (7B → 24B) changes almost nothing. CodeGemma-7B has the best brain of the eight (0.803) and the worst mouth — the widest say–know gap so far. Code vs general sibling inside a family makes no measurable difference (CodeGemma 0.803 vs Gemma-2 0.768, Qwen-Coder 0.796 vs Qwen2.5-7B 0.765, but Codestral 0.774 vs Mistral-Small 0.787; every gap is inside the confidence intervals, with a slight lean toward the code models). Codestral is also the one model whose brain and mouth are literally the same weights, so its gap (0.774 vs 0.50) cannot be a base-vs-instruct artefact.
 → `notebooks/xmodel_codellama7b.ipynb`, `notebooks/xmodel_gemma2_9b.ipynb`, `notebooks/xmodel_llama31_8b.ipynb`, `notebooks/xmodel_mistral24b.ipynb`, `notebooks/xmodel_codegemma7b.ipynb`, `notebooks/xmodel_codestral22b.ipynb`, `notebooks/xmodel_qwen25_7b.ipynb`, `results/xmodel/`, `code/gen_multi_model_notebooks.py`
 
+### 6. Can training make it say what it knows? (Phase 4, Sep 29)
+
+Prof. Yang asked for one model to be fine-tuned. Qwen2.5-Coder-7B-Instruct was QLoRA-tuned to answer the yes/no question (4-bit base, LoRA r = 16 on every projection, 40 M trainable parameters, lr 1e-4, 2 epochs, loss on the answer tokens only) inside the same CVE-grouped 5-fold cross-validation, so every score is on CVEs the adapter never saw. Per fold we re-measured the mouth, the brain (a probe on the *tuned* model's hidden states) and the non-security control, and the same notebook first scored the untuned Instruct model on the same folds — including, for the first time, a probe on the Instruct checkpoint's own hidden states.
+
+| | Untuned Instruct | QLoRA-tuned (held-out folds) |
+|---|---|---|
+| Mouth — yes/no pairwise · A/B forced choice | 0.518 · 0.531 | **0.553** [0.489, 0.618] · **0.526** [0.465, 0.592] |
+| Brain — probe on this checkpoint's hidden states | **0.737** [0.682, 0.792] | **0.706** [0.645, 0.761] |
+| Brain — probe on the frozen base (Phase 1.5) | 0.796 | — |
+| Control — tuned mouth on non-security patches · control probe | 0.518 · 0.571 | 0.543 · 0.603 |
+
+Fine-tuning moved neither the mouth (still a coin flip on held-out CVEs) nor the brain (0.71 vs 0.74, inside the intervals). The training loss tells why: the adapter learned the answer *format* and the label balance but never got the yes/no token below chance level on the training folds themselves — its P(yes) is 0.49 on vulnerable and 0.48 on fixed code and takes only 19 distinct values over 460 samples. So this recipe could not teach the model to say what its probe reads; whether a heavier recipe (more epochs, higher learning rate, an A/B-contrast objective) can at least memorise the training folds is the next check before the null result is called final. The side result is worth as much as the main one: the Instruct checkpoint's own activations read 0.737 while its answers score 0.52 — the say–know gap inside one set of weights, in a second family after Codestral.
+→ `notebooks/phase4_finetune_qwen25coder7b.ipynb`, `results/finetune/results_Qwen2.5-Coder-7B-Instruct-QLoRA.json`
+
 ## The numbers
 
 | Measurement | Value | 95% CI / n |
@@ -91,7 +105,7 @@ The single-sample AUC is modest, around 0.60: the probe is much better at saying
 
 ## What comes next
 
-Two directions are open. **Generality:** eight models across five families are done (a code and a general model in each); next are DeepSeek-Coder, StarCoder2 and a Qwen size sweep, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** with the GCP credit, fine-tune on the CVE pairs and re-probe, to see whether training moves the brain, the mouth, or both — and check on the control set that a trained model learns security rather than patch shape.
+Two directions are open. **Generality:** eight models across five families are done (a code and a general model in each); next are DeepSeek-Coder, StarCoder2 and a Qwen size sweep, with frontier models such as Gemini and GPT providing mouth-only baselines since their internals cannot be read (`docs/08_multi_model_plan.md`). **Training:** the first fine-tuning point is in (Phase 4: one light QLoRA recipe moves neither mouth nor brain); next is a recipe that memorises the training folds, five seeds, and the say–know closure curve against the frozen-probe ceiling — with the control set checking whether a trained model learns security rather than patch shape.
 
 ---
 
@@ -102,7 +116,7 @@ README.md                      this brief
 REFERENCES.md                  every paper, database and method cited, with links
 docs/
   progress_brief.html          the same brief as a formatted page
-  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 results log (rev. 11)
+  01_probing_study_design_and_results.md   full design + Phase 1 / 1.5 / 1.5b / 2 / 4 results log (rev. 12)
   02_reference_commit_audit.md             the 251-row commit audit (method, verdicts, wrong rows)
   03_probing_explainer.md                  plain-language explanation of every term (pre-Phase-1)
   04_extraction_methodology_and_audit.md   how pairs were extracted; leakage measurements; threats to validity
@@ -121,6 +135,7 @@ notebooks/
   xmodel_codegemma7b.ipynb       Phase 2: same pipeline on CodeGemma-7B (+it)
   xmodel_codestral22b.ipynb      Phase 2: same pipeline on Codestral-22B (one checkpoint = base + instruct; GCP L4)
   xmodel_qwen25_7b.ipynb         Phase 2: same pipeline on Qwen2.5-7B (+Instruct), the general sibling of Qwen-Coder
+  phase4_finetune_qwen25coder7b.ipynb  Phase 4: QLoRA fine-tune of Qwen2.5-Coder-7B-Instruct, 5-fold, mouth/brain/control re-measured (GCP L4)
 data/
   halurust_metadata.csv          245 CVEs: cwe, crate, repo, rustsec_id, dates, never_patched, audit verdict
   Halurust_SHA_audit.xlsx        the dataset sheet + 10 audit columns
@@ -136,6 +151,7 @@ code/
 results/
   phase15b_results.json          all Phase 1.5b numbers incl. per-layer transfer curve
   xmodel/results_<model>.json    Phase 2 numbers per model (probe, temporal, control, residualised, mouth)
+  finetune/results_Qwen2.5-Coder-7B-Instruct-QLoRA.json   Phase 4 numbers (untuned vs tuned, per fold)
   pilot_results_0.5B.csv, *.jpg  pilot table and screenshots of the Phase 1 / 1.5 result cells
 ```
 
