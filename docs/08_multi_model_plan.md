@@ -1,6 +1,6 @@
 # Next step — replicating across model families (plan, Sep 11 2026; status updated Sep 15)
 
-**Status (Sep 22):** CodeLlama-7B, Gemma-2-9B, Llama-3.1-8B, Mistral-Small-24B, CodeGemma-7B and Codestral-22B done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.80, control 0.59–0.64). Prof. Yang asked for a code sibling per family: CodeLlama ✓, CodeGemma ✓ (best brain 0.803, mouth below chance), Codestral-22B ✓ (0.774 / mouth 0.54–0.50; L4 on Colab Enterprise, ~1.9 h; ungated, one checkpoint for brain and mouth). Code-vs-general sibling is a null result (Gemma family +0.035, Mistral family −0.013, CIs overlap). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). The 24B and Codestral ran on Colab Enterprise (us-east4, L4) — us-central1 had no L4 stock. Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
+**Status (Sep 28):** CodeLlama-7B, Gemma-2-9B, Llama-3.1-8B, Mistral-Small-24B, CodeGemma-7B, Codestral-22B and Qwen2.5-7B (general) done — all reproduce the Qwen pattern (mouth at chance, probe 0.76–0.80, control 0.59–0.64). Prof. Yang asked for a code sibling per family: CodeLlama ✓, CodeGemma ✓ (best brain 0.803, mouth below chance), Codestral-22B ✓ (0.774 / mouth 0.54–0.50; L4 on Colab Enterprise, ~1.9 h; ungated, one checkpoint for brain and mouth). Every family now has a code and a general member. Code-vs-general sibling is a null result (Gemma +0.035, Mistral −0.013, Qwen +0.031 in favour of the code model; all inside the CIs). Numbers and reading in `01_probing_study_design_and_results.md` (Phase 2). The 24B and Codestral ran on Colab Enterprise (us-east4, L4) — us-central1 had no L4 stock. Next candidates need no licence: DeepSeek-Coder-6.7B, StarCoder2-7B, Qwen2.5-Coder 1.5B/14B.
 
 Prof. Yang asked for the result to be tested on other models (Mistral, Code Llama, GPT, Llama 3, …).
 
@@ -17,7 +17,7 @@ say–know gap grow or shrink with scale); a direct link to HALURust's own model
 
 | Priority | Model (base + instruct where it exists) | Why | Where |
 |---|---|---|---|
-| 1 | Qwen2.5-Coder 1.5B and 14B (7B done) | scale curve inside one family | Colab T4 |
+| 1 | Qwen2.5-Coder 1.5B and 14B (7B done; general Qwen2.5-7B ✓ done Sep 28) | scale curve inside one family | Colab T4 |
 | 2 | CodeLlama-7B (+Instruct) | training data ends mid-2023 → most CVEs post-cutoff; cleanest no-memorisation test | Colab T4 |
 | 3 | Llama-3.1-8B (+Instruct) | general-purpose, non-code reference | Colab T4 (gated) |
 | 4 | CodeGemma-7B / Gemma-2-9B (+it) | HALURust's classifier was Gemma-7B | Colab T4 (gated) |
